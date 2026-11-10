@@ -1,66 +1,63 @@
-# Olist E-commerce Executive Dashboard (Power BI + Tableau)
+# Olist E-commerce Executive Dashboard (Power BI)
 
-A one-page executive dashboard of ~100K orders from Olist, a Brazilian online marketplace (2017–2018). It is built twice, once in **Power BI** and once in **Tableau**, from the same cleaned star schema.
+A one-page executive dashboard of **97,905 orders** from Olist, a Brazilian online marketplace (Jan 2017 – Aug 2018). It was built in **Power BI** on a star schema that I cleaned and modeled with **Python (pandas)**.
 
-**[▶ View the live Tableau dashboard](PASTE_TABLEAU_PUBLIC_LINK)** · [Power BI PDF export](powerbi/olist_dashboard.pdf)
+<img width="1316" height="738" alt="Screenshot 2026-11-10 173613" src="https://github.com/user-attachments/assets/8265e873-e277-45ff-8c90-c418d63cbad1" />
 
-![Power BI dashboard](images/powerbi_dashboard.png)
 
 ## Business question
 How is the marketplace performing, and what should leadership focus on to grow revenue and customer satisfaction?
 
-## KPIs tracked
-| KPI | Definition |
-|---|---|
-| Revenue | Sum of item prices (excludes freight) |
-| Orders / AOV | Order count; revenue ÷ orders |
-| Repeat customer % | Customers with 2+ orders ÷ all customers |
-| On-time delivery % | Delivered on or before the estimated date ÷ delivered orders |
-| Avg review score | Mean 1–5 star review per order |
+## Headline KPIs
+| KPI | Value | Definition |
+|---|---|---|
+| Revenue | **R$ 13.4M** | Sum of item prices (excludes freight) |
+| Orders | **97,905** | Orders that were not canceled or unavailable |
+| Avg order value | **R$ 137** | Revenue ÷ orders |
+| Customers | **94,703** | Unique customers (`customer_unique_id`) |
+| Repeat customer % | **3.0%** | Customers with 2+ orders ÷ all customers |
+| On-time delivery % | **93.2%** | Delivered on or before the estimated date ÷ delivered orders |
+| Avg review score | **4.12 / 5** | Mean review per order |
 
 ## Key findings
-> Replace these with your numbers from `prep/build_model.py` and the dashboard.
-
-1. **Revenue grew X% from H1 2017 to H1 2018**, with a spike in Nov 2017 (Black Friday).
-2. **Late deliveries hurt satisfaction:** late orders average **X★** vs **X★** on time.
-3. **Almost no repeat buyers:** only **X%** of customers ordered more than once.
-4. **Revenue is concentrated:** São Paulo brings in **X%**, and the top 3 categories bring in **X%**.
+1. **Late deliveries badly hurt satisfaction.** On-time orders average **4.29★**, but late orders average just **2.27★**, a drop of about **2 stars**. Only 6.8% of orders arrive late, yet they cause a large share of the bad reviews.
+2. **Customers almost never come back.** Only **3.0%** of customers placed a second order. Growth depends almost entirely on finding new customers.
+3. **Revenue is concentrated geographically.** São Paulo (SP) brings in by far the most revenue, ahead of RJ and MG.
+4. **Seasonality.** Revenue grew through 2017 and peaked in **November 2017** (Black Friday).
 
 ## Recommendations
-1. **Fix delivery in the slowest states.** Set carrier SLAs and better delivery estimates → higher reviews.
-2. **Launch a retention program** (second-order discount, email flows). Even a small rise in repeat rate is a large revenue gain.
-3. **Grow outside SP.** Test free-shipping thresholds in states where freight is a high share of order value.
+1. **Cut late deliveries.** Set delivery SLAs with carriers on the slowest routes and pad the estimated delivery dates where carriers often miss them. Turning late orders into on-time ones could lift the average review and protect seller ratings.
+2. **Launch a retention program.** Offer a second-order discount, run post-delivery email flows, and target customers who left 5★ reviews. Moving the repeat rate from 3% to just 6% would double repeat revenue.
+3. **Grow outside São Paulo.** Test free-shipping thresholds and regional promotions in high-potential states to reduce dependence on one market.
 
 ## Data model
 Python (pandas) turns the 9 raw tables into a star schema:
 
-- `fact_orders` (order level): revenue, freight, delivery, review
+- `fact_orders` (order level): revenue, freight, delivery status, review
 - `fact_order_items` (item level): price, product, seller
-- `dim_customers`, `dim_products`, `dim_sellers`, `dim_date`
+- `dim_customers`, `dim_products`, `dim_sellers`, `dim_date` (marked as the date table)
 
-![Model](images/powerbi_model.png)
+**Cleaning decisions**
+- Removed canceled and unavailable orders.
+- Limited the data to Jan 2017 – Aug 2018, because the first and last months are incomplete and distort trends.
+- Used `customer_unique_id` as the customer key, because Olist's `customer_id` changes with every order (using it would put repeat customers at 0%).
+- Translated product categories from Portuguese to English.
 
-Cleaning decisions: canceled and unavailable orders are removed. The data is limited to Jan 2017 – Aug 2018 because the edge months are incomplete. `customer_unique_id` is used as the customer key, since Olist's `customer_id` changes with every order.
-
-## Power BI vs Tableau: what I noticed
-- *Power BI:* relationships + DAX measures; time intelligence needs a marked date table.
-- *Tableau:* faster for exploring a flat extract; needed LOD expressions to avoid double counting order-level fields.
-- *(add your own notes)*
+**DAX measures:** Revenue, Orders, AOV, Customers, Repeat Customer %, On-Time Delivery %, and Avg Review (overall, on time, late). See [`powerbi/measures.dax`](powerbi/measures.dax).
 
 ## Repo layout
 ```
 prep/build_model.py         raw CSVs → clean star schema
-powerbi/measures.dax        all DAX measures
 powerbi/olist_dashboard.pbix
-tableau/calculated_fields.md
-docs/build_guide.md         step-by-step build notes
-images/                     screenshots
+powerbi/measures.dax        DAX measures
+images/                     dashboard and model screenshots
+docs/build_guide.md         build notes
 ```
 
 ## Reproduce
 1. Download the dataset from [Kaggle](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) into `data/raw/`
-2. `pip install pandas && python prep/build_model.py`
-3. Open `powerbi/olist_dashboard.pbix`, or connect Tableau to `data/clean/olist_flat.csv`
+2. `pip install pandas` then `python prep/build_model.py`
+3. Open `powerbi/olist_dashboard.pbix` and click **Refresh**
 
-**Tools:** Python (pandas) · Power BI (DAX) · Tableau Public
+**Tools:** Python (pandas) · Power BI (DAX, data modeling)
 **Data:** Olist Brazilian E-Commerce Public Dataset (CC BY-NC-SA 4.0)

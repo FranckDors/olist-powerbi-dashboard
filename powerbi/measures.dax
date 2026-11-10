@@ -1,0 +1,73 @@
+// =============================================================
+// Olist Executive Dashboard — DAX measures
+// Create a blank table called _Measures (Home > Enter data > Load)
+// and add each measure below to it (Modeling > New measure).
+// =============================================================
+
+// ---------- Core KPIs ----------
+Revenue = SUM ( fact_orders[product_revenue] )
+
+Orders = COUNTROWS ( fact_orders )
+
+Avg Order Value = DIVIDE ( [Revenue], [Orders] )
+
+Customers = DISTINCTCOUNT ( fact_orders[customer_unique_id] )
+
+Freight % of Revenue = DIVIDE ( SUM ( fact_orders[freight] ), [Revenue] )
+
+// ---------- Retention ----------
+Repeat Customers =
+COUNTROWS (
+    FILTER (
+        VALUES ( fact_orders[customer_unique_id] ),
+        CALCULATE ( COUNTROWS ( fact_orders ) ) > 1
+    )
+)
+
+Repeat Customer % = DIVIDE ( [Repeat Customers], [Customers] )
+
+// ---------- Delivery & satisfaction ----------
+Delivered Orders = CALCULATE ( [Orders], fact_orders[is_delivered] = 1 )
+
+On-Time Delivery % =
+1 - DIVIDE (
+    CALCULATE ( [Orders], fact_orders[is_late] = 1 ),
+    [Delivered Orders]
+)
+
+Avg Delivery Days = AVERAGE ( fact_orders[delivery_days] )
+
+Avg Review Score = AVERAGE ( fact_orders[review_score] )
+
+Avg Review (On Time) =
+CALCULATE ( [Avg Review Score], fact_orders[is_delivered] = 1, fact_orders[is_late] = 0 )
+
+Avg Review (Late) =
+CALCULATE ( [Avg Review Score], fact_orders[is_late] = 1 )
+
+// ---------- Time intelligence (needs dim_date marked as Date table) ----------
+Revenue PY = CALCULATE ( [Revenue], SAMEPERIODLASTYEAR ( dim_date[date] ) )
+
+Revenue YoY % = DIVIDE ( [Revenue] - [Revenue PY], [Revenue PY] )
+
+Revenue MoM % =
+VAR Prev = CALCULATE ( [Revenue], DATEADD ( dim_date[date], -1, MONTH ) )
+RETURN DIVIDE ( [Revenue] - Prev, Prev )
+
+Revenue 3M Avg =
+AVERAGEX (
+    DATESINPERIOD ( dim_date[date], MAX ( dim_date[date] ), -3, MONTH ),
+    CALCULATE ( [Revenue] )
+)
+
+// ---------- Item-level (category breakdown) ----------
+Item Revenue = SUM ( fact_order_items[price] )
+
+Category Share % =
+DIVIDE ( [Item Revenue], CALCULATE ( [Item Revenue], ALL ( dim_products[category] ) ) )
+
+// ---------- Dynamic title (use in a Card or as visual title via fx) ----------
+Dashboard Subtitle =
+"R$ " & FORMAT ( [Revenue], "#,0" ) & " revenue from "
+    & FORMAT ( [Orders], "#,0" ) & " orders | "
+    & FORMAT ( [On-Time Delivery %], "0%" ) & " on time"
